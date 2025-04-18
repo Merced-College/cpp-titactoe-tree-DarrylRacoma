@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <limits>
+#include <ctime>
+#include <cstdlib>
 using namespace std;
 
 const char HUMAN = 'X';
@@ -70,17 +72,18 @@ public:
 
 class TicTacToeTree {
 public:
-    int minimax(const GameState& state, bool isMaximizing) {
+    //modified to limit Depth
+    int minimax(const GameState& state, bool isMaximizing, int depth) {
         char winner = state.checkWinner();
-        if (winner == COMPUTER) return 1;
-        if (winner == HUMAN) return -1;
-        if (state.isFull()) return 0;
+        if (winner == COMPUTER) return 10 - depth;
+        if (winner == HUMAN) return depth - 10;
+        if (state.isFull() || depth == 0) return 0;
 
         if (isMaximizing) {
             int bestScore = numeric_limits<int>::min();
             for (int move : state.getAvailableMoves()) {
                 GameState newState = state.makeMove(move, COMPUTER);
-                int score = minimax(newState, false);
+                int score = minimax(newState, false, depth - 1);
                 bestScore = max(bestScore, score);
             }
             return bestScore;
@@ -88,26 +91,35 @@ public:
             int bestScore = numeric_limits<int>::max();
             for (int move : state.getAvailableMoves()) {
                 GameState newState = state.makeMove(move, HUMAN);
-                int score = minimax(newState, true);
+                int score = minimax(newState, true, depth - 1);
                 bestScore = min(bestScore, score);
             }
             return bestScore;
         }
     }
 
-    int findBestMove(const GameState& state) {
+    //modified to add randomness and to work with the limit depth modification
+    int findBestMove(const GameState& state, int depthLimit = 2) { //depthLimit limits how much the AI can look ahead
         int bestScore = numeric_limits<int>::min();
-        int bestMove = -1;
+        vector<int> bestMoves;
 
         for (int move : state.getAvailableMoves()) {
             GameState newState = state.makeMove(move, COMPUTER);
-            int score = minimax(newState, false);
+            int score = minimax(newState, false, depthLimit - 1);
             if (score > bestScore) {
                 bestScore = score;
-                bestMove = move;
+                bestMoves.clear();
+                bestMoves.push_back(move);
+            } else if (score == bestScore){
+                bestMoves.push_back(move);
             }
         }
-        return bestMove;
+
+        if(!bestMoves.empty()){
+            int randomIndex = rand() % bestMoves.size();
+            return bestMoves[randomIndex];
+        }
+        return -1;
     }
 };
 
@@ -129,7 +141,7 @@ void playGame() {
                 cout << "Invalid move. Try again.\n";
             }
         } else {
-            int move = ai.findBestMove(state);
+            int move = ai.findBestMove(state, 2); // modifying the 2 to any number allows the AI to see ahead
             state = state.makeMove(move, COMPUTER);
             cout << "Computer plays at position " << move << endl;
             currentPlayer = HUMAN;
@@ -144,6 +156,7 @@ void playGame() {
 }
 
 int main() {
+    srand(static_cast<unsigned int>(time(0)));
     playGame();
     return 0;
 }
